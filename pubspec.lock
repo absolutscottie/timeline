@@ -79,11 +79,9 @@ packages:
   flutter_background_geolocation:
     dependency: "direct main"
     description:
-      path: "."
-      ref: HEAD
-      resolved-ref: "7c427ed1db0a907f9cf75fb451b4be9a2647e219"
-      url: "https://github.com/transistorsoft/flutter_background_geolocation.git"
-    source: git
+      name: flutter_background_geolocation
+      url: "https://pub.dartlang.org"
+    source: hosted
     version: "1.5.0"
   flutter_test:
     dependency: "direct dev"
