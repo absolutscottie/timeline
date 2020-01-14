@@ -1,24 +1,20 @@
 import 'dart:io';
+import 'package:flutter/material.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 import 'package:path_provider/path_provider.dart';
+import 'user_location_model.dart';
 
-class DBHelper {
+class LocationStorage {
   static final _databaseName = "LOCATION.db";
-  static final _databaseVersion = 1;
-
-  final String table    = 'Location';
-  final String columnId         = '_id';
-  final String columnTimestamp  = 'timestamp';
-  final String columnLatitude   = 'latitude';
-  final String columnLongitude  = 'longitude';
+  static final _tableName = "User_Location";
 
   static Database _database;
 
-  DBHelper._privateConstructor();
-  static final DBHelper storage = DBHelper._privateConstructor();
+  LocationStorage._privateConstructor();
+  static final LocationStorage _storage = LocationStorage._privateConstructor();
 
-  Future<Database> get database async {
+  Future<Database> get _db async {
     if(_database != null) {
       return _database;
     }
@@ -31,30 +27,46 @@ class DBHelper {
     Directory documentsDirectory = await getApplicationDocumentsDirectory();
     String path = join(documentsDirectory.path, _databaseName);
     return await openDatabase(path,
-        version: _databaseVersion,
-        onCreate: _onCreate);
+        version: UserLocation.userLocationVersion,
+        onCreate: _onCreate,
+        onUpgrade: _onUpgrade,
+        onConfigure: _onConfigure,
+        onDowngrade: _onDowngrade);
+  }
+
+  Future _onConfigure(Database db) async {
+    debugPrint('onConfigure $db');
+  }
+
+  Future _onDowngrade(Database db, int oldVersion, int newVersion) async {
+    debugPrint("onDowngrade $db");
+  }
+
+  Future _onUpgrade(Database db, int oldVersion, int newVersion) async {
+    debugPrint("UPGRADE: $db, oldVersion: $oldVersion, newVersion: $newVersion");
   }
 
   Future _onCreate(Database db, int version) async {
-    await db.execute('''
-        CREATE TABLE $table (
-          $columnId INTEGER PRIMARY KEY,
-          $columnTimestamp INTEGER NOT NULL,
-          $columnLatitude TEXT NOT NULL,
-          $columnLongitude TEXT NOT NULL
-        )
-        ''');
+    var count = 0;
+    var createQuery = "CREATE TABLE $_tableName (\n_id INTEGER PRIMARY KEY AUTOINCREMENT,\n";
+    UserLocation.keysAndTypes().forEach((k,v) {
+      createQuery += "$k $v";
+      count++;
+      if(count < UserLocation.keysAndTypes().length) {
+        createQuery += ",";
+      } 
+      createQuery += "\n";
+    });
+    createQuery += ")\n";
+
+    debugPrint('Create query: $createQuery');
+    
+    await db.execute(createQuery);
   }
 
-  Future<int> storeLocation(String lat, String long) async {
-    Map<String, dynamic> row = {
-      columnTimestamp: DateTime.now().millisecondsSinceEpoch,
-      columnLatitude: lat,
-      columnLongitude: long
-    };
-
-    Database db = await storage.database;
-    return await db.insert(table, row);
+  static Future<int> storeLocation(UserLocation ul) async {
+    Database db = await _storage._db;
+    return await db.insert(_tableName, ul.toMap());
   }
 }
 

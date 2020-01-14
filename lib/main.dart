@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_background_geolocation/flutter_background_geolocation.dart' as bg;
 import 'package:timeline/location_storage.dart';
+import 'user_location_model.dart';
 
 void main() => runApp(MyApp());
 
@@ -31,13 +32,11 @@ class MyHomePage extends StatefulWidget {
 class _MyHomePageState extends State<MyHomePage> {
   String _lastLatLong = "unknown";
 
-  void _setLastLatLong(String last) {
+  void _setLastLatLong(double lat, double long) {
     setState(() {
-      _lastLatLong = last;
+      _lastLatLong = lat.toString() + ", " + long.toString();
     });
   }
-
-
 
   @override
   void initState() {
@@ -48,8 +47,7 @@ class _MyHomePageState extends State<MyHomePage> {
     //Define location event callbacks
     bg.BackgroundGeolocation.onLocation((bg.Location location) {
       debugPrint('[location] - $location');
-      _storeLocation(location);
-      _setLastLatLong("$location.coords.latitude - $location.coords.longitude");
+      _storeLocation(location, "location");
     });
 
     bg.BackgroundGeolocation.onMotionChange((bg.Location location) {
@@ -62,8 +60,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
     bg.BackgroundGeolocation.onHeartbeat((bg.HeartbeatEvent event) {
       debugPrint('[heartbeat] - $event.location');
-      _storeLocation(event.location);
-      _setLastLatLong("$event.location.coords.latitude - $event.location.coords.longitude");
+      _storeLocation(event.location, "heartbeat");
     });
 
     bg.BackgroundGeolocation.ready(bg.Config(
@@ -84,14 +81,20 @@ class _MyHomePageState extends State<MyHomePage> {
     debugPrint('[initstate] - end! ');
   }
 
-  void _storeLocation(bg.Location location) async {
+  void _storeLocation(bg.Location location, String source) async {
+    _setLastLatLong(location.coords.latitude, location.coords.longitude);
     try {
+        var timestamp = DateTime.parse(location.timestamp).millisecondsSinceEpoch;
         var lat = location.coords.latitude;
         var long = location.coords.longitude;
-        var rowId = await DBHelper.storage.storeLocation(lat.toString(), long.toString());
-        debugPrint('Inserted $lat - $long into row: $rowId');
+        var activity = location.activity.type;
+
+        var ul = UserLocation(timestamp: timestamp, latitude:lat, longitude:long, activity:activity, source:source);
+
+        await LocationStorage.storeLocation(ul);
+        debugPrint('Successfully inserted $lat - $long to storage');
       } catch(e) {
-        debugPrint('Failed to get lat and long from location callback.');
+        debugPrint('Failed to get lat and long from location callback: $e');
       }
   }
 
