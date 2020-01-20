@@ -1,8 +1,13 @@
-import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter_background_geolocation/flutter_background_geolocation.dart' as bg;
-import 'package:timeline/location_storage.dart';
+import 'package:flutter/foundation.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:flutter/material.dart';
+import 'package:sliding_up_panel/sliding_up_panel.dart';
+import 'package:timeline/history_widget.dart';
+
+import 'location_storage.dart';
 import 'user_location_model.dart';
+
 
 void main() => runApp(MyApp());
 
@@ -30,28 +35,52 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  String _lastLatLong = "unknown";
+  GoogleMapController _mapController;
+  Map<MarkerId, Marker> _markers = <MarkerId, Marker>{};
+  Map<PolylineId, Polyline> _polylines = <PolylineId, Polyline>{};
+  MarkerId _currentPos = MarkerId("Current Position");
 
-  void _setLastLatLong(double lat, double long) {
-    setState(() {
-      _lastLatLong = lat.toString() + ", " + long.toString();
-    });
+  _onMapCreated(GoogleMapController controller) async {
+    debugPrint("onMapCreated()");
+    _mapController = controller;
+    await bg.BackgroundGeolocation.getCurrentPosition();
   }
 
   @override
   void initState() {
     super.initState();
 
-    debugPrint('[initstate] - begin!');
-
     //Define location event callbacks
     bg.BackgroundGeolocation.onLocation((bg.Location location) {
       debugPrint('[location] - $location');
-      _storeLocation(location, "location");
+      LatLng ll = LatLng(location.coords.latitude, location.coords.longitude);
+      _updateMapLocation(ll);
+      _updateLocationMarker(ll);
+      LocationStorage.storeLocation(
+        UserLocation(
+          activity: location.activity.toString(),
+          latitude: ll.latitude,
+          longitude: ll.longitude,
+          timestamp: DateTime.parse(location.timestamp).millisecondsSinceEpoch,
+          source: "location"
+        )
+      );
     });
 
     bg.BackgroundGeolocation.onMotionChange((bg.Location location) {
       debugPrint('[motionChange] - $location');
+      LatLng ll = LatLng(location.coords.latitude, location.coords.longitude);
+      _updateMapLocation(ll);
+      _updateLocationMarker(ll);
+      LocationStorage.storeLocation(
+        UserLocation(
+          activity: location.activity.toString(),
+          latitude: ll.latitude,
+          longitude: ll.longitude,
+          timestamp: DateTime.parse(location.timestamp).millisecondsSinceEpoch,
+          source: "location"
+        )
+      );
     });
 
     bg.BackgroundGeolocation.onProviderChange((bg.ProviderChangeEvent event) {
@@ -60,88 +89,93 @@ class _MyHomePageState extends State<MyHomePage> {
 
     bg.BackgroundGeolocation.onHeartbeat((bg.HeartbeatEvent event) {
       debugPrint('[heartbeat] - $event.location');
-      _storeLocation(event.location, "heartbeat");
     });
 
-    bg.BackgroundGeolocation.ready(bg.Config(
+    bg.BackgroundGeolocation.ready(
+      bg.Config(
       desiredAccuracy: bg.Config.DESIRED_ACCURACY_HIGH,
-      distanceFilter: 10.0,
+      distanceFilter: 100.0,
       stopOnTerminate: false,
       startOnBoot: true,
-      debug: true,
+      debug: false,
       logLevel: bg.Config.LOG_LEVEL_VERBOSE,
       preventSuspend: true,
-      heartbeatInterval: 1,
+      heartbeatInterval: 0,
     )).then((bg.State state) {
       if(!state.enabled) {
         bg.BackgroundGeolocation.start();
       }
     });
-
-    debugPrint('[initstate] - end! ');
   }
 
-  void _storeLocation(bg.Location location, String source) async {
-    _setLastLatLong(location.coords.latitude, location.coords.longitude);
-    try {
-        var timestamp = DateTime.parse(location.timestamp).millisecondsSinceEpoch;
-        var lat = location.coords.latitude;
-        var long = location.coords.longitude;
-        var activity = location.activity.type;
+  _updateMapLocation(LatLng ll) async {
+    _mapController.animateCamera(
+      CameraUpdate.newCameraPosition(
+        CameraPosition(
+          target: ll,
+          zoom: 17,
+        )
+      )
+    );
+  }
 
-        var ul = UserLocation(timestamp: timestamp, latitude:lat, longitude:long, activity:activity, source:source);
+  _updateLocationMarker(LatLng ll) async {
+    Marker marker = Marker(
+      markerId: _currentPos,
+      position: ll
+    );
 
-        await LocationStorage.storeLocation(ul);
-        debugPrint('Successfully inserted $lat - $long to storage');
-      } catch(e) {
-        debugPrint('Failed to get lat and long from location callback: $e');
-      }
+    setState(() {
+      _markers[_currentPos] = marker;
+    });
+  }
+
+  _onChooseOverlay(int minutes) async {
+    _polylines.clear();
+    List<LatLng> points = List<LatLng>();
+
+    if(minutes > 0) {
+      var results = await LocationStorage.getResults(minutes);
+      results.forEach((row) => points.insert(0, LatLng(row['latitude'], row['longitude'])));
+    }
+    
+    PolylineId polyId = PolylineId("History");
+    Polyline poly = Polyline(
+      polylineId: polyId,
+      points: points,
+      color: Colors.blue,
+    );
+
+    setState(() {
+      _polylines[polyId] = poly;
+    });
   }
 
   @override
   Widget build(BuildContext context) {
-    // This method is rerun every time setState is called, for instance as done
-    // by the _incrementCounter method above.
-    //
-    // The Flutter framework has been optimized to make rerunning build methods
-    // fast, so that you can just rebuild anything that needs updating rather
-    // than having to individually change instances of widgets.
-    return Scaffold(
-      appBar: AppBar(
-        // Here we take the value from the MyHomePage object that was created by
-        // the App.build method, and use it to set our appbar title.
-        title: Text(widget.title),
-      ),
-      body: Center(
-        // Center is a layout widget. It takes a single child and positions it
-        // in the middle of the parent.
-        child: Column(
-          // Column is also a layout widget. It takes a list of children and
-          // arranges them vertically. By default, it sizes itself to fit its
-          // children horizontally, and tries to be as tall as its parent.
-          //
-          // Invoke "debug painting" (press "p" in the console, choose the
-          // "Toggle Debug Paint" action from the Flutter Inspector in Android
-          // Studio, or the "Toggle Debug Paint" command in Visual Studio Code)
-          // to see the wireframe for each widget.
-          //
-          // Column has various properties to control how it sizes itself and
-          // how it positions its children. Here we use mainAxisAlignment to
-          // center the children vertically; the main axis here is the vertical
-          // axis because Columns are vertical (the cross axis would be
-          // horizontal).
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            Text(
-              'Your last know location was:',
-            ),
-            Text(
-              '$_lastLatLong',
-              style: Theme.of(context).textTheme.display1,
-            ),
-          ],
+    return MaterialApp(
+      home: Scaffold(
+        appBar: AppBar(
+          title: Text(''),
+          backgroundColor: Colors.green[700],
         ),
-      ),// This trailing comma makes auto-formatting nicer for build methods.
+        body: SlidingUpPanel(
+          backdropEnabled: true,
+          body: GoogleMap(
+            onMapCreated: _onMapCreated,
+            initialCameraPosition: CameraPosition(
+              target: LatLng(0,0),
+              zoom: 7.0,
+            ),
+            markers: Set<Marker>.of(_markers.values),
+            polylines: Set<Polyline>.of(_polylines.values),
+          ),
+          panel: Center(
+            child: HistoryWidget.Open(_onChooseOverlay),
+          ),
+          collapsed: HistoryWidget.Closed(),
+        ) 
+      ),
     );
   }
 }

@@ -5,12 +5,20 @@ PODS:
     - CocoaLumberjack/Core (= 3.6.0)
   - CocoaLumberjack/Core (3.6.0)
   - Flutter (1.0.0)
-  - flutter_background_geolocation (1.5.0):
+  - flutter_background_geolocation (1.6.0):
     - CocoaLumberjack (~> 3.6.0)
     - Flutter
   - FMDB (2.7.5):
     - FMDB/standard (= 2.7.5)
   - FMDB/standard (2.7.5)
+  - google_maps_flutter (0.0.1):
+    - Flutter
+    - GoogleMaps
+  - GoogleMaps (2.7.0):
+    - GoogleMaps/Maps (= 2.7.0)
+  - GoogleMaps/Base (2.7.0)
+  - GoogleMaps/Maps (2.7.0):
+    - GoogleMaps/Base
   - path_provider (0.0.1):
     - Flutter
   - sqflite (0.0.1):
@@ -21,6 +29,7 @@ DEPENDENCIES:
   - background_fetch (from `.symlinks/plugins/background_fetch/ios`)
   - Flutter (from `Flutter`)
   - flutter_background_geolocation (from `.symlinks/plugins/flutter_background_geolocation/ios`)
+  - google_maps_flutter (from `.symlinks/plugins/google_maps_flutter/ios`)
   - path_provider (from `.symlinks/plugins/path_provider/ios`)
   - sqflite (from `.symlinks/plugins/sqflite/ios`)
 
@@ -28,6 +37,7 @@ SPEC REPOS:
   trunk:
     - CocoaLumberjack
     - FMDB
+    - GoogleMaps
 
 EXTERNAL SOURCES:
   background_fetch:
@@ -36,6 +46,8 @@ EXTERNAL SOURCES:
     :path: Flutter
   flutter_background_geolocation:
     :path: ".symlinks/plugins/flutter_background_geolocation/ios"
+  google_maps_flutter:
+    :path: ".symlinks/plugins/google_maps_flutter/ios"
   path_provider:
     :path: ".symlinks/plugins/path_provider/ios"
   sqflite:
@@ -45,8 +57,10 @@ SPEC CHECKSUMS:
   background_fetch: 81de747c63e1ec3558e222af758c1b5fa2662c70
   CocoaLumberjack: 78b0c238666f4f58db069738ec176f4519557516
   Flutter: 0e3d915762c693b495b44d77113d4970485de6ec
-  flutter_background_geolocation: 7d14cf94f187e11b2cb1754134dbaf7638d949c3
+  flutter_background_geolocation: 5e08c72a9387d03c48050475a985ee8c1c6b4f4b
   FMDB: 2ce00b547f966261cd18927a3ddb07cb6f3db82a
+  google_maps_flutter: d0dd62f5a7d39bae61057eb9f52dd778d99c7c6c
+  GoogleMaps: f79af95cb24d869457b1f961c93d3ce8b2f3b848
   path_provider: f96fff6166a8867510d2c25fdcc346327cc4b259
   sqflite: 4001a31ff81d210346b500c55b17f4d6c7589dd0
 

@@ -68,5 +68,14 @@ class LocationStorage {
     Database db = await _storage._db;
     return await db.insert(_tableName, ul.toMap());
   }
+
+  static Future<List<Map> > getResults(int minutes) async {
+    var cutoff = DateTime.now().millisecondsSinceEpoch - (minutes * 60 * 1000);
+    Database db = await _storage._db;
+    List<Map> queryResult = await db.rawQuery('SELECT * FROM $_tableName WHERE timestamp > $cutoff');
+    return queryResult;
+    //db.rawQuery('DELETE FROM $_tableName');
+    
+  }
 }
 
